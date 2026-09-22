@@ -210,6 +210,7 @@
         .term-line {
             margin-bottom: 5px;
             word-wrap: break-word;
+            white-space: pre-wrap;
         }
 
         .text-red { color: var(--term-red); text-shadow: 0 0 6px rgba(255,51,51,0.6); }
@@ -414,7 +415,7 @@
             <div id="ios-time">9:41</div>
             <div class="ios-icons">
                 <!-- Signal -->
-                <svg viewBox="0 0 24 24" width="16"><path d="M12,21L15.6,16.2C14.6,15.4 13.4,15 12,15C10.6,15 9.4,15.4 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"/></svg>
+                <svg viewBox="0 0 24 24" width="16"><path d="M2,22h20V2L2,22z"/></svg>
                 <!-- Wifi -->
                 <svg viewBox="0 0 24 24" width="16"><path d="M12,21L15.6,16.2C14.6,15.4 13.4,15 12,15C10.6,15 9.4,15.4 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"/></svg>
                 <!-- Battery -->
@@ -437,7 +438,7 @@
     <div id="phase-2-terminal" class="stage">
         <div class="term-content" id="term-output"></div>
         <div class="term-input-wrapper" id="term-input-area">
-            <span>root@ios-kernel:~# ingrese_clave: </span>
+            <span>root@ios-kernel:~# ingrese_clave:&nbsp;</span>
             <input type="password" class="term-input" id="pwd-input" maxlength="8" autocomplete="off" inputmode="numeric">
             <div class="cursor-blink"></div>
         </div>
@@ -457,13 +458,13 @@
                 <div id="counter-time" class="counter-time">00d 00h 00m 00s</div>
                 <div class="counter-label">Tiempo con mi sistema vulnerado</div>
             </div>
-            <div id="click-hint" class="click-hint">Dale click al girasol 🌻</div>
+            <div id="click-hint" class="click-hint">Dale clic al girasol 🌻</div>
         </div>
     </div>
 
     <!-- 🎵 AUDIO HTML5 CON ARCHIVOS LOCALES -->
-<audio id="suspense-music" src="suspenso.mp3" preload="auto" loop></audio>
-<audio id="bg-music" src="romantico.mp3" preload="auto" loop></audio>
+    <audio id="suspense-music" src="suspenso.mp3" preload="auto" loop></audio>
+    <audio id="bg-music" src="romantico.mp3" preload="auto" loop></audio>
 
     <script>
         const dom = id => document.getElementById(id);
@@ -487,37 +488,48 @@
             initIOSClock();
             initGallery();
             generateFlower();
+            initGlobalEvents();
         };
-// Desbloquear audio con el primer toque en la pantalla
-let audiosDesbloqueados = false;
 
-document.body.addEventListener('click', function unlockAudio() {
-    if (audiosDesbloqueados) return;
-    
-    // Reproducimos y pausamos inmediatamente para engañar al navegador
-    // y decirle "el usuario ya dio permiso de usar audio"
-    suspenseMusic.play().then(() => suspenseMusic.pause()).catch(() => {});
-    bgMusic.play().then(() => bgMusic.pause()).catch(() => {});
-    
-    audiosDesbloqueados = true;
-    
-    // Eliminamos este evento porque ya no lo necesitamos
-    document.body.removeEventListener('click', unlockAudio);
-}, { once: true });
+        // Desbloquear audio con el primer toque en la pantalla
+        let audiosDesbloqueados = false;
+        function unlockAudio() {
+            if (audiosDesbloqueados) return;
+            
+            suspenseMusic.play().then(() => suspenseMusic.pause()).catch(() => {});
+            bgMusic.play().then(() => bgMusic.pause()).catch(() => {});
+            
+            audiosDesbloqueados = true;
+            document.removeEventListener('click', unlockAudio);
+        }
+        document.addEventListener('click', unlockAudio, { once: true });
+
+        function initGlobalEvents() {
+            // Re-focus para la terminal en móvil sin duplicar listeners
+            document.addEventListener('click', () => {
+                if(phase2.style.display !== 'none' && !isProcessing) {
+                    pwdInput.focus();
+                }
+            });
+
+            // Escuchar la tecla Enter de forma compatible con teclados móviles
+            pwdInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handlePassword();
+            });
+        }
+
         function initIOSClock() {
             const timeEl = dom('ios-time');
-            setInterval(() => {
+            const updateClock = () => {
                 const now = new Date();
                 timeEl.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            }, 1000);
-            // Initial call
-            const now = new Date();
-            timeEl.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            };
+            updateClock();
+            setInterval(updateClock, 1000);
         }
 
         function initGallery() {
             const grid = dom('ios-grid');
-            // Generate 32 blurred items to fill the screen
             for(let i=1; i<=32; i++) {
                 const item = document.createElement('div');
                 item.className = 'ios-photo';
@@ -536,7 +548,6 @@ document.body.addEventListener('click', function unlockAudio() {
             if (isProcessing) return;
             isProcessing = true;
 
-            // 1. Iniciamos el suspenso manejando cualquier error para no congelar la UI
             try {
                 suspenseMusic.volume = 0.5;
                 const playPromise = suspenseMusic.play();
@@ -545,7 +556,6 @@ document.body.addEventListener('click', function unlockAudio() {
                 }
             } catch (err) { console.warn("Error al intentar reproducir suspenso:", err); }
             
-            // 2. "Desbloqueamos" el audio romántico de forma invisible
             try {
                 bgMusic.volume = 0;
                 const bgPromise = bgMusic.play();
@@ -554,10 +564,9 @@ document.body.addEventListener('click', function unlockAudio() {
                 }
             } catch (err) { console.warn("Error al pre-cargar romance:", err); }
 
-            // Trigger fatal crash on iOS UI
             phase1.classList.add('fatal-glitch');
             
-            await sleep(1400); // wait for animation
+            await sleep(1400);
             
             phase1.style.display = 'none';
             phase2.style.display = 'flex';
@@ -574,7 +583,7 @@ document.body.addEventListener('click', function unlockAudio() {
             termOutput.appendChild(line);
             
             for (let char of text) {
-                line.innerHTML += char === ' ' ? '&nbsp;' : char;
+                line.textContent += char;
                 phase2.scrollTop = phase2.scrollHeight;
                 await sleep(speed);
             }
@@ -601,17 +610,6 @@ document.body.addEventListener('click', function unlockAudio() {
             isProcessing = false;
             
             setTimeout(() => pwdInput.focus(), 100);
-            
-            // Re-focus hack for mobile
-            document.addEventListener('click', () => {
-                if(phase2.style.display !== 'none' && !isProcessing) {
-                    pwdInput.focus();
-                }
-            });
-
-            pwdInput.onkeypress = (e) => {
-                if (e.key === 'Enter') handlePassword();
-            };
         }
 
         async function handlePassword() {
@@ -626,7 +624,6 @@ document.body.addEventListener('click', function unlockAudio() {
             await typeLine(`> ${val}`, "", 0);
 
             if (val === TARGET_PWD) {
-                // Success Path
                 await typeLine("> VERIFICANDO HASH...", "", 30);
                 await sleep(600);
                 await typeLine("> ACCESO CONCEDIDO.", "text-yellow", 10);
@@ -634,7 +631,6 @@ document.body.addEventListener('click', function unlockAudio() {
                 await sleep(800);
                 startReveal();
             } else {
-                // Failure Path - Fake extraction
                 await typeLine("> VERIFICANDO HASH...", "", 20);
                 await sleep(400);
                 await typeLine("CLAVE INCORRECTA. ACTIVANDO PROTOCOLO DE EXTRACCIÓN.", "text-red");
@@ -663,10 +659,8 @@ document.body.addEventListener('click', function unlockAudio() {
         }
 
         function startReveal() {
-            // Apply CRT Turn Off Effect
             phase2.classList.add('crt-turn-off');
             
-            // Reproducir música romántica con manejo de errores
             try {
                 suspenseMusic.pause();
                 bgMusic.currentTime = 0; 
@@ -679,19 +673,15 @@ document.body.addEventListener('click', function unlockAudio() {
 
             setTimeout(() => {
                 phase2.style.display = 'none';
-                
-                // Prepare Phase 3
                 phase3.style.display = 'flex';
                 
                 setTimeout(() => {
                     phase3.style.opacity = '1';
                     createFireflies();
                     
-                    // Trigger Bloom
                     setTimeout(() => {
                         dom('sunflower').classList.add('bloom');
                         
-                        // Typewriter text 
                         setTimeout(() => {
                             runTypewriterAndCounter();
                         }, 2500);
@@ -710,16 +700,16 @@ document.body.addEventListener('click', function unlockAudio() {
                     }, 1000);
 
                 }, 100);
-            }, 600); // matches crt-off animation duration
+            }, 600);
         }
 
         async function runTypewriterAndCounter() {
-            const finalString = "190424...\nEl día en que mi sistema fue hackeado por tu sonrisa. Te amo.";
+            const finalString = "Más de dos años a tu lado y...\nTe amo cada día más, nunca serás espectadora";
             const textEl = dom('typewriter-text');
             
             for(let i=0; i<finalString.length; i++) {
                 textEl.innerHTML += finalString.charAt(i) === '\n' ? '<br>' : finalString.charAt(i);
-                await sleep(60); // typing speed
+                await sleep(60);
             }
 
             await sleep(500);
@@ -770,9 +760,8 @@ document.body.addEventListener('click', function unlockAudio() {
                 f.style.setProperty('--ty', `${ty}px`);
                 
                 const duration = Math.random() * 6 + 5;
-                const delay = Math.random() * 6;
+                f.style.animationDelay = `${Math.random() * 6}s`;
                 f.style.animationDuration = `${duration}s`;
-                f.style.animationDelay = `${delay}s`;
                 
                 container.appendChild(f);
             }
@@ -780,7 +769,8 @@ document.body.addEventListener('click', function unlockAudio() {
 
         function startLiveCounter() {
             const el = dom('counter-time');
-            const start = new Date('2024-04-19T00:00:00');
+            // Formato de fecha seguro para Safari/iOS
+            const start = new Date(2024, 3, 19, 0, 0, 0);
             
             function update() {
                 const diff = new Date() - start;
