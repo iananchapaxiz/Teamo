@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Favoritos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --ios-bg: #000000;
+            --ios-nav-bg: rgba(28, 28, 30, 0.9);
+            --ios-blue: #0A84FF;
+            --term-bg: #050505;
+            --term-green: #00ff41;
+            --term-red: #ff3333;
+            --term-yellow: #facc15;
+            --reveal-bg-center: #381204;
+            --reveal-bg-edge: #0a0200;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            background-color: var(--ios-bg);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .stage {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.5s ease;
+        }
+
+        #phase-1-ios {
+            background-color: var(--ios-bg);
+            color: #ffffff;
+            z-index: 60;
+        }
+
+        /* iOS Status Bar */
+        .ios-status-bar {
+            height: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            z-index: 100;
+            background-color: var(--ios-bg);
+        }
+
+        .ios-icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .ios-icons svg {
+            fill: #fff;
+            height: 12px;
+        }
+
+        /* iOS Navigation Bar */
+        .ios-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            padding-bottom: 15px;
+            background-color: var(--ios-bg);
+            border-bottom: 1px solid #333;
+        }
+
+        .ios-back {
+            color: var(--ios-blue);
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .ios-back::before {
+            content: "";
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-left: 2.5px solid var(--ios-blue);
+            border-bottom: 2.5px solid var(--ios-blue);
+            transform: rotate(45deg);
+            margin-bottom: 2px;
+        }
+
+        .ios-select {
+            color: var(--ios-blue);
+            font-size: 17px;
+        }
+
+        .ios-header {
+            padding: 10px 15px;
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            background-color: var(--ios-bg);
+        }
+
+        /* iOS Photo Grid */
+        .ios-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+            padding-bottom: 40px;
+            overflow-y: auto;
+            flex-grow: 1;
+            background-color: var(--ios-bg);
+        }
+
+        .ios-photo {
+            aspect-ratio: 1 / 1;
+            background-color: #1c1c1e;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .ios-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(12px) saturate(1.8) brightness(0.8);
+            transform: scale(1.1); /* Prevent blur edges */
+            transition: filter 0.3s;
+        }
+        
+        .ios-photo:active img {
+            filter: blur(8px) saturate(1.5) brightness(0.6);
+        }
+
+        .fatal-glitch {
+            animation: app-crash 1.5s cubic-bezier(.25, .46, .45, .94) forwards !important;
+        }
+
+        @keyframes app-crash {
+            0% { transform: translate(0); filter: hue-rotate(0deg); opacity: 1; }
+            10% { transform: translate(-10px, 10px) skewX(10deg); filter: hue-rotate(90deg) invert(1); }
+            20% { transform: translate(15px, -15px) skewX(-15deg); filter: blur(4px) contrast(2); }
+            30% { transform: translate(-5px, 20px) scale(1.1); filter: invert(1) drop-shadow(0 0 10px red); }
+            40% { transform: translate(20px, -5px) scale(0.9); }
+            50% { transform: translate(0) scale(1.2); filter: sepia(1) hue-rotate(180deg); }
+            60% { opacity: 1; filter: brightness(10) blur(10px); }
+            100% { transform: scale(2); opacity: 0; filter: brightness(0); background-color: black; }
+        }
+
+        #phase-2-terminal {
+            background-color: var(--term-bg);
+            color: var(--term-green);
+            font-family: 'Fira Code', monospace;
+            padding: 20px;
+            z-index: 50;
+            display: none;
+            opacity: 0;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        #phase-2-terminal::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 55;
+        }
+
+        .crt-turn-off {
+            animation: crt-off 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+
+        @keyframes crt-off {
+            0% { transform: scale(1, 1.3) translate3d(0, 0, 0); filter: brightness(1); }
+            60% { transform: scale(1, 0.001) translate3d(0, 0, 0); filter: brightness(10); }
+            100% { transform: scale(0, 0.001) translate3d(0, 0, 0); filter: brightness(0); opacity: 0; }
+        }
+
+        .term-content {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            font-size: 14px;
+            line-height: 1.6;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+            flex-grow: 1;
+        }
+
+        .term-line {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .text-red { color: var(--term-red); text-shadow: 0 0 6px rgba(255,51,51,0.6); }
+        .text-yellow { color: var(--term-yellow); text-shadow: 0 0 6px rgba(250, 204, 21, 0.6); }
+
+        .term-input-wrapper {
+            display: none;
+            margin-top: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .term-input {
+            background: transparent;
+            border: none;
+            color: var(--term-green);
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            outline: none;
+            width: 150px;
+            letter-spacing: 3px;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+            margin-left: 10px;
+        }
+        
+        .cursor-blink {
+            display: inline-block;
+            width: 8px; height: 1.2em;
+            background-color: var(--term-green);
+            vertical-align: text-bottom;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        #phase-3-reveal {
+            background: radial-gradient(circle at center, var(--reveal-bg-center) 0%, var(--reveal-bg-edge) 100%);
+            z-index: 40;
+            display: none;
+            opacity: 0;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .sunflower-container {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            z-index: 45;
+            margin-top: -5vh; /* adjust for center balance */
+        }
+
+        .flower-center {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            background: radial-gradient(circle, #3d1c04 30%, #1f0b01 90%);
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(0,0,0,0.9), inset 0 0 15px rgba(0,0,0,0.9);
+            z-index: 10;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .flower-center::before {
+            content: "";
+            position: absolute;
+            top: 10%; left: 10%; width: 80%; height: 80%;
+            border-radius: 50%;
+            background-image: radial-gradient(#140801 1.5px, transparent 1.5px);
+            background-size: 8px 8px;
+            opacity: 0.7;
+        }
+
+        .petal {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 22px;
+            height: 100px;
+            margin-left: -11px;
+            margin-top: -90px; 
+            background: linear-gradient(to bottom, #fde047 0%, #eab308 70%, #a16207 100%);
+            border-radius: 50% 50% 20% 20%;
+            transform-origin: bottom center;
+            transform: rotate(var(--angle)) translateY(0) scale(0);
+            transition: transform 2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 5;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+        }
+
+        .petal.layer-2 {
+            width: 18px;
+            height: 80px;
+            margin-top: -75px;
+            background: linear-gradient(to bottom, #fef08a 0%, #facc15 80%, #ca8a04 100%);
+            z-index: 6;
+        }
+
+        .sunflower-container.bloom .flower-center { opacity: 1; transform: scale(1); }
+        .sunflower-container.bloom .petal { transform: rotate(var(--angle)) translateY(-45px) scale(1); }
+        .sunflower-container.bloom .petal.layer-2 { transform: rotate(var(--angle)) translateY(-40px) scale(1.1); }
+
+        .message-panel {
+            text-align: center;
+            z-index: 45;
+            padding: 0 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 200px; /* reserve space for typing */
+        }
+        
+        .title-romantic {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            color: #fef08a;
+            text-shadow: 0 0 20px rgba(253, 224, 71, 0.7);
+            margin-bottom: 30px;
+            line-height: 1.5;
+            max-width: 90vw;
+            min-height: 80px;
+        }
+
+        .counter-box {
+            font-family: 'Fira Code', monospace;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(253, 224, 71, 0.2);
+            border-radius: 16px;
+            padding: 15px 25px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1.5s ease;
+        }
+
+        .counter-box.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .counter-time { font-size: 1.1rem; color: #fff; letter-spacing: 2px; }
+        .counter-label { font-size: 0.7rem; color: #facc15; text-transform: uppercase; margin-top: 8px; letter-spacing: 1px; opacity: 0.8;}
+
+        .click-hint {
+            font-family: 'Fira Code', monospace;
+            font-size: 1rem;
+            color: #facc15;
+            margin-top: 20px;
+            opacity: 0;
+            cursor: pointer;
+            transition: opacity 1s ease;
+            animation: pulse-hint 1.5s infinite;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .click-hint.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .sunflower-container.interactive {
+            cursor: pointer;
+        }
+
+        @keyframes pulse-hint {
+            0% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 12px #facc15; }
+            100% { transform: scale(1); opacity: 0.6; }
+        }
+
+        #fireflies-container { position: absolute; width:100%; height:100%; top:0; left:0; overflow:hidden; z-index: 41; pointer-events: none; }
+        .firefly {
+            position: absolute;
+            background: #fef08a;
+            border-radius: 50%;
+            box-shadow: 0 0 10px 3px #facc15, 0 0 20px 5px #ca8a04;
+            opacity: 0;
+            animation: float-around linear infinite;
+        }
+
+        @keyframes float-around {
+            0% { transform: translate(0, 0) scale(0.8); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(1.2); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="phase-1-ios" class="stage">
+        <div class="ios-status-bar">
+            <div id="ios-time">9:41</div>
+            <div class="ios-icons">
+                <!-- Signal -->
+                <svg viewBox="0 0 24 24" width="16"><path d="M12,21L15.6,16.2C14.6,15.4 13.4,15 12,15C10.6,15 9.4,15.4 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"/></svg>
+                <!-- Wifi -->
+                <svg viewBox="0 0 24 24" width="16"><path d="M12,21L15.6,16.2C14.6,15.4 13.4,15 12,15C10.6,15 9.4,15.4 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"/></svg>
+                <!-- Battery -->
+                <svg viewBox="0 0 24 24" width="18"><path d="M16,20H8V6H16M16.67,4H15V2H9V4H7.33C6.6,4 6,4.6 6,5.33V20.67C6,21.4 6.6,22 7.33,22H16.67C17.4,22 18,21.4 18,20.67V5.33C18,4.6 17.4,4 16.67,4Z"/></svg>
+            </div>
+        </div>
+        
+        <div class="ios-nav">
+            <div class="ios-back">Álbumes</div>
+            <div class="ios-select">Seleccionar</div>
+        </div>
+        
+        <div class="ios-header">Favoritos</div>
+        
+        <div class="ios-grid" id="ios-grid">
+            <!-- Photos generated by JS -->
+        </div>
+    </div>
+
+    <div id="phase-2-terminal" class="stage">
+        <div class="term-content" id="term-output"></div>
+        <div class="term-input-wrapper" id="term-input-area">
+            <span>root@ios-kernel:~# ingrese_clave: </span>
+            <input type="password" class="term-input" id="pwd-input" maxlength="8" autocomplete="off" inputmode="numeric">
+            <div class="cursor-blink"></div>
+        </div>
+    </div>
+
+    <div id="phase-3-reveal" class="stage">
+        <div id="fireflies-container"></div>
+        
+        <div class="sunflower-container" id="sunflower">
+            <div class="flower-center"></div>
+            <!-- Petals generated via JS -->
+        </div>
+
+        <div class="message-panel" id="final-panel">
+            <h1 class="title-romantic" id="typewriter-text"></h1>
+            <div class="counter-box" id="counter-container">
+                <div id="counter-time" class="counter-time">00d 00h 00m 00s</div>
+                <div class="counter-label">Tiempo con mi sistema vulnerado</div>
+            </div>
+            <div id="click-hint" class="click-hint">Dale click al girasol 🌻</div>
+        </div>
+    </div>
+
+    <!-- 🎵 AUDIO HTML5 CON ARCHIVOS LOCALES -->
+<audio id="suspense-music" src="suspenso.mp3" preload="auto" loop></audio>
+<audio id="bg-music" src="romantico.mp3" preload="auto" loop></audio>
+
+    <script>
+        const dom = id => document.getElementById(id);
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+        
+        const phase1 = dom('phase-1-ios');
+        const phase2 = dom('phase-2-terminal');
+        const phase3 = dom('phase-3-reveal');
+        
+        const termOutput = dom('term-output');
+        const inputArea = dom('term-input-area');
+        const pwdInput = dom('pwd-input');
+        
+        let isProcessing = false;
+        const TARGET_PWD = "190424";
+
+        const bgMusic = dom('bg-music');
+        const suspenseMusic = dom('suspense-music');
+
+        window.onload = () => {
+            initIOSClock();
+            initGallery();
+            generateFlower();
+        };
+// Desbloquear audio con el primer toque en la pantalla
+let audiosDesbloqueados = false;
+
+document.body.addEventListener('click', function unlockAudio() {
+    if (audiosDesbloqueados) return;
+    
+    // Reproducimos y pausamos inmediatamente para engañar al navegador
+    // y decirle "el usuario ya dio permiso de usar audio"
+    suspenseMusic.play().then(() => suspenseMusic.pause()).catch(() => {});
+    bgMusic.play().then(() => bgMusic.pause()).catch(() => {});
+    
+    audiosDesbloqueados = true;
+    
+    // Eliminamos este evento porque ya no lo necesitamos
+    document.body.removeEventListener('click', unlockAudio);
+}, { once: true });
+        function initIOSClock() {
+            const timeEl = dom('ios-time');
+            setInterval(() => {
+                const now = new Date();
+                timeEl.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }, 1000);
+            // Initial call
+            const now = new Date();
+            timeEl.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function initGallery() {
+            const grid = dom('ios-grid');
+            // Generate 32 blurred items to fill the screen
+            for(let i=1; i<=32; i++) {
+                const item = document.createElement('div');
+                item.className = 'ios-photo';
+                item.onclick = triggerHack;
+                
+                const img = document.createElement('img');
+                img.src = `https://picsum.photos/300/300?random=${i}&blur=5`;
+                img.alt = "Favorito";
+                
+                item.appendChild(img);
+                grid.appendChild(item);
+            }
+        }
+
+        async function triggerHack() {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            // 1. Iniciamos el suspenso manejando cualquier error para no congelar la UI
+            try {
+                suspenseMusic.volume = 0.5;
+                const playPromise = suspenseMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.warn("Audio de suspenso omitido (bloqueado/no encontrado)."));
+                }
+            } catch (err) { console.warn("Error al intentar reproducir suspenso:", err); }
+            
+            // 2. "Desbloqueamos" el audio romántico de forma invisible
+            try {
+                bgMusic.volume = 0;
+                const bgPromise = bgMusic.play();
+                if (bgPromise !== undefined) {
+                    bgPromise.then(() => bgMusic.pause()).catch(e => console.warn("Pre-carga de audio romántico omitida."));
+                }
+            } catch (err) { console.warn("Error al pre-cargar romance:", err); }
+
+            // Trigger fatal crash on iOS UI
+            phase1.classList.add('fatal-glitch');
+            
+            await sleep(1400); // wait for animation
+            
+            phase1.style.display = 'none';
+            phase2.style.display = 'flex';
+            
+            setTimeout(() => { phase2.style.opacity = '1'; }, 100);
+
+            await sleep(600);
+            startBootSequence();
+        }
+
+        async function typeLine(text, colorClass = "", speed = 15) {
+            const line = document.createElement('div');
+            line.className = `term-line ${colorClass}`;
+            termOutput.appendChild(line);
+            
+            for (let char of text) {
+                line.innerHTML += char === ' ' ? '&nbsp;' : char;
+                phase2.scrollTop = phase2.scrollHeight;
+                await sleep(speed);
+            }
+            return line;
+        }
+
+        async function startBootSequence() {
+            await typeLine("iOS Kernel Panic - Not syncing: Fatal exception");
+            await typeLine("Dump: 0x000000 0x000004 0xFFFFFF");
+            await sleep(400);
+            await typeLine("[ OK ] Bypass hardware security module...", "", 5);
+            await typeLine("[ OK ] Mounting encrypted volume '/dev/heart'...", "", 5);
+            await sleep(500);
+            await typeLine(">> ACCESO RESTRINGIDO. KERNEL ROMÁNTICO DETECTADO.", "text-yellow");
+            await typeLine(">> SE REQUIERE CLAVE MAESTRA.", "text-red");
+            
+            showInput();
+        }
+
+        function showInput() {
+            inputArea.style.display = 'flex';
+            pwdInput.value = '';
+            pwdInput.disabled = false;
+            isProcessing = false;
+            
+            setTimeout(() => pwdInput.focus(), 100);
+            
+            // Re-focus hack for mobile
+            document.addEventListener('click', () => {
+                if(phase2.style.display !== 'none' && !isProcessing) {
+                    pwdInput.focus();
+                }
+            });
+
+            pwdInput.onkeypress = (e) => {
+                if (e.key === 'Enter') handlePassword();
+            };
+        }
+
+        async function handlePassword() {
+            if (isProcessing) return;
+            const val = pwdInput.value;
+            if(!val) return;
+
+            isProcessing = true;
+            pwdInput.disabled = true;
+            inputArea.style.display = 'none';
+
+            await typeLine(`> ${val}`, "", 0);
+
+            if (val === TARGET_PWD) {
+                // Success Path
+                await typeLine("> VERIFICANDO HASH...", "", 30);
+                await sleep(600);
+                await typeLine("> ACCESO CONCEDIDO.", "text-yellow", 10);
+                await typeLine("> INICIANDO SECUENCIA DE REVELACIÓN...", "text-green", 10);
+                await sleep(800);
+                startReveal();
+            } else {
+                // Failure Path - Fake extraction
+                await typeLine("> VERIFICANDO HASH...", "", 20);
+                await sleep(400);
+                await typeLine("CLAVE INCORRECTA. ACTIVANDO PROTOCOLO DE EXTRACCIÓN.", "text-red");
+                await sleep(300);
+                
+                const barLine = document.createElement('div');
+                barLine.className = 'term-line text-yellow';
+                termOutput.appendChild(barLine);
+                
+                let progress = "";
+                for(let i=0; i<=20; i++) {
+                    progress += "█";
+                    barLine.innerText = `Extrayendo galería oculta... [${progress.padEnd(20, '░')}] ${i*5}%`;
+                    phase2.scrollTop = phase2.scrollHeight;
+                    await sleep(50);
+                }
+                
+                await sleep(400);
+                await typeLine("DATOS ENVIADOS. REINICIANDO INTENTO...", "text-red");
+                await sleep(1000);
+                
+                termOutput.innerHTML = '';
+                await typeLine("SISTEMA RESETEADO. INGRESE CLAVE VÁLIDA.");
+                showInput();
+            }
+        }
+
+        function startReveal() {
+            // Apply CRT Turn Off Effect
+            phase2.classList.add('crt-turn-off');
+            
+            // Reproducir música romántica con manejo de errores
+            try {
+                suspenseMusic.pause();
+                bgMusic.currentTime = 0; 
+                bgMusic.volume = 0.6;
+                const playPromise = bgMusic.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.warn("Música romántica omitida (bloqueada por el navegador)."));
+                }
+            } catch(err) { console.warn("Error al intentar reproducir romance:", err); }
+
+            setTimeout(() => {
+                phase2.style.display = 'none';
+                
+                // Prepare Phase 3
+                phase3.style.display = 'flex';
+                
+                setTimeout(() => {
+                    phase3.style.opacity = '1';
+                    createFireflies();
+                    
+                    // Trigger Bloom
+                    setTimeout(() => {
+                        dom('sunflower').classList.add('bloom');
+                        
+                        // Typewriter text 
+                        setTimeout(() => {
+                            runTypewriterAndCounter();
+                        }, 2500);
+
+                        setTimeout(() => {
+                            const hint = dom('click-hint');
+                            const flower = dom('sunflower');
+                            hint.classList.add('show');
+                            flower.classList.add('interactive');
+                            
+                            const redirect = () => window.location.href = 'https://youtu.be/lemltwglmgg';
+                            flower.onclick = redirect;
+                            hint.onclick = redirect;
+                        }, 6000);
+
+                    }, 1000);
+
+                }, 100);
+            }, 600); // matches crt-off animation duration
+        }
+
+        async function runTypewriterAndCounter() {
+            const finalString = "190424...\nEl día en que mi sistema fue hackeado por tu sonrisa. Te amo.";
+            const textEl = dom('typewriter-text');
+            
+            for(let i=0; i<finalString.length; i++) {
+                textEl.innerHTML += finalString.charAt(i) === '\n' ? '<br>' : finalString.charAt(i);
+                await sleep(60); // typing speed
+            }
+
+            await sleep(500);
+            startLiveCounter();
+            dom('counter-container').classList.add('show');
+        }
+
+        function generateFlower() {
+            const flower = dom('sunflower');
+            const countLayer1 = 22;
+            for(let i=0; i<countLayer1; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                const angle = i * (360 / countLayer1);
+                petal.style.setProperty('--angle', `${angle}deg`);
+                petal.style.transitionDelay = `${0.3 + (i * 0.08)}s`;
+                flower.appendChild(petal);
+            }
+
+            const countLayer2 = 18;
+            for(let i=0; i<countLayer2; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal layer-2';
+                const angle = (i * (360 / countLayer2)) + 10; 
+                petal.style.setProperty('--angle', `${angle}deg`);
+                petal.style.transitionDelay = `${1.2 + (i * 0.08)}s`;
+                flower.appendChild(petal);
+            }
+        }
+
+        function createFireflies() {
+            const container = dom('fireflies-container');
+            const total = 50;
+            
+            for(let i=0; i<total; i++) {
+                const f = document.createElement('div');
+                f.className = 'firefly';
+                
+                const size = Math.random() * 4 + 1;
+                f.style.width = `${size}px`;
+                f.style.height = `${size}px`;
+                f.style.left = `${Math.random() * 100}%`;
+                f.style.top = `${Math.random() * 100}%`;
+                
+                const tx = (Math.random() - 0.5) * 300; 
+                const ty = (Math.random() - 0.5) * 300 - 100; 
+                f.style.setProperty('--tx', `${tx}px`);
+                f.style.setProperty('--ty', `${ty}px`);
+                
+                const duration = Math.random() * 6 + 5;
+                const delay = Math.random() * 6;
+                f.style.animationDuration = `${duration}s`;
+                f.style.animationDelay = `${delay}s`;
+                
+                container.appendChild(f);
+            }
+        }
+
+        function startLiveCounter() {
+            const el = dom('counter-time');
+            const start = new Date('2024-04-19T00:00:00');
+            
+            function update() {
+                const diff = new Date() - start;
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const m = Math.floor((diff / 1000 / 60) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+                
+                el.innerText = `${d.toString().padStart(2,'0')}d ${h.toString().padStart(2,'0')}h ${m.toString().padStart(2,'0')}m ${s.toString().padStart(2,'0')}s`;
+            }
+            update();
+            setInterval(update, 1000);
+        }
+    </script>
+</body>
+</html>
